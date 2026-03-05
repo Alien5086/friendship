@@ -1,0 +1,586 @@
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { 
+  Users, ShieldAlert, Trophy, RefreshCcw, ArrowRight, UserCheck, Trash2, Star, Clock, CheckCircle2,
+  Play, Settings, ChevronRight as ChevronRightIcon, Layers, X, Radio, Activity, Box, Leaf, MapPin,
+  Heart, Footprints, RotateCcw, BookOpen, Grab, Navigation, MousePointer2, RotateCw, ClipboardCheck,
+  UserPlus, Square, Skull, Eraser, Flag, ChevronUp, ChevronDown, ChevronLeft, Radar, Zap, Cloud, Sparkles, Sprout,
+  Smile, Palette, Wand2, Ghost
+} from 'lucide-react';
+
+const APP_ID = 'fairy-tale-forest-mystery-assignment';
+
+const CARD_COLORS = [
+  "bg-pink-400", "bg-sky-400", "bg-lime-400", "bg-amber-400", 
+  "bg-purple-400", "bg-orange-400", "bg-rose-400", "bg-teal-400"
+];
+
+const AVATAR_COLORS = [
+  "#FFD700", "#FF9999", "#99FF99", "#99CCFF", "#CC99FF", "#FFCC99", "#99FFCC", "#FF99CC"
+];
+
+const AVATAR_SHAPES = [
+  { id: 'alien', label: '精靈' },
+  { id: 'bear', label: '小熊' },
+  { id: 'rabbit', label: '兔子' },
+  { id: 'cat', label: '小貓' },
+  { id: 'panda', label: '熊貓' },
+  { id: 'frog', label: '青蛙' },
+  { id: 'chick', label: '小雞' },
+  { id: 'puppy', label: '小狗' },
+  { id: 'fox', label: '狐狸' }
+];
+
+const GRID_COLS = 20;
+const GRID_ROWS = 15;
+
+// --- 組件：童話角色圖標 ---
+const CharacterIcon = ({ color = "#FFD700", size = "w-8 h-8", shape = 'alien' }) => {
+  return (
+    <svg viewBox="0 0 100 100" className={`${size} transition-all duration-700 drop-shadow-md`}>
+      {shape === 'alien' && (
+        <>
+          <path d="M 25 20 Q 15 10 20 30" stroke={color} strokeWidth="5" fill="none" />
+          <path d="M 75 20 Q 85 10 80 30" stroke={color} strokeWidth="5" fill="none" />
+          <circle cx="50" cy="50" r="45" fill={color} />
+        </>
+      )}
+      {shape === 'bear' && (
+        <>
+          <circle cx="25" cy="25" r="15" fill={color} />
+          <circle cx="75" cy="25" r="15" fill={color} />
+          <circle cx="50" cy="55" r="42" fill={color} />
+          <circle cx="50" cy="65" r="15" fill="white" opacity="0.3" />
+        </>
+      )}
+      {shape === 'rabbit' && (
+        <>
+          <ellipse cx="30" cy="25" rx="12" ry="30" fill={color} transform="rotate(-10, 30, 25)" />
+          <ellipse cx="70" cy="25" rx="12" ry="30" fill={color} transform="rotate(10, 70, 25)" />
+          <circle cx="50" cy="60" r="40" fill={color} />
+        </>
+      )}
+      {shape === 'cat' && (
+        <>
+          <path d="M 20 30 L 40 45 L 10 50 Z" fill={color} />
+          <path d="M 80 30 L 60 45 L 90 50 Z" fill={color} />
+          <circle cx="50" cy="60" r="40" fill={color} />
+        </>
+      )}
+      {shape === 'panda' && (
+        <>
+          <circle cx="25" cy="25" r="14" fill="#333" />
+          <circle cx="75" cy="25" r="14" fill="#333" />
+          <circle cx="50" cy="55" r="42" fill="white" />
+          <circle cx="35" cy="45" r="12" fill="#333" />
+          <circle cx="65" cy="45" r="12" fill="#333" />
+        </>
+      )}
+      {shape === 'frog' && (
+        <>
+          <circle cx="30" cy="30" r="15" fill={color} />
+          <circle cx="70" cy="30" r="15" fill={color} />
+          <ellipse cx="50" cy="60" rx="45" ry="35" fill={color} />
+        </>
+      )}
+      {shape === 'chick' && (
+        <>
+          <path d="M 50 10 Q 55 0 60 10" stroke="#FF9900" strokeWidth="4" fill="none" />
+          <circle cx="50" cy="55" r="42" fill={color} />
+        </>
+      )}
+      {shape === 'puppy' && (
+        <>
+          <path d="M 10 30 Q 5 60 20 70" fill={color} />
+          <path d="M 90 30 Q 95 60 80 70" fill={color} />
+          <circle cx="50" cy="55" r="42" fill={color} />
+        </>
+      )}
+      {shape === 'fox' && (
+        <>
+          <path d="M 15 20 L 40 40 L 5 50 Z" fill={color} />
+          <path d="M 85 20 L 60 40 L 95 50 Z" fill={color} />
+          <circle cx="50" cy="55" r="42" fill={color} />
+          <path d="M 20 70 Q 50 95 80 70" fill="white" opacity="0.4" />
+        </>
+      )}
+      {shape !== 'panda' && <><circle cx="35" cy="45" r="7" fill="white" /><circle cx="65" cy="45" r="7" fill="white" /><circle cx="35" cy="45" r="3.5" fill="#000" /><circle cx="65" cy="45" r="3.5" fill="#000" /></>}
+      {shape === 'panda' && <><circle cx="35" cy="45" r="4" fill="white" /><circle cx="65" cy="45" r="4" fill="white" /></>}
+      {shape === 'chick' ? <path d="M 45 55 L 55 55 L 50 65 Z" fill="#FF9900" /> : <path d="M 42 68 Q 50 78 58 68" stroke="#000" strokeWidth="4" fill="none" strokeLinecap="round" />}
+    </svg>
+  );
+};
+
+const App = () => {
+  // --- 1. State 定義 ---
+  const [gameState, setGameState] = useState('lobby'); 
+  const [level, setLevel] = useState(1);
+  const [numPlayers, setNumPlayers] = useState(2);
+  const [role, setRole] = useState('leader'); 
+  const [memberSlot, setMemberSlot] = useState(0); 
+  const [alienAura, setAlienAura] = useState(0); 
+  const [gameLog, setGameLog] = useState([]);
+  const [feedback, setFeedback] = useState("");
+  
+  const [leaderName, setLeaderName] = useState("精靈隊長");
+  const [leaderColor, setLeaderColor] = useState("#FFD700");
+  const [leaderShape, setLeaderShape] = useState("alien");
+  const [memberConfigs, setMemberConfigs] = useState([]);
+  const [editingIndex, setEditingIndex] = useState(-1);
+
+  const [l1Grid, setL1Grid] = useState([]); 
+  const [l1Target, setL1Target] = useState([]); 
+  const [l2Grid, setL2Grid] = useState([]); 
+  const [l2Sequence, setL2Sequence] = useState([]); 
+  const [l2CurrentStep, setL2CurrentStep] = useState(0); 
+  const [l2CurrentNum, setL2CurrentNum] = useState(1);
+  const [l2TimeLeft, setL2TimeLeft] = useState(300); 
+  const [l2Lives, setL2Lives] = useState(3);
+  const [l2MemberCoords, setL2MemberCoords] = useState([]);
+  const [l3State, setL3State] = useState('jinnang'); 
+  const [l3Cards, setL3Cards] = useState([]); 
+  const [l3ActiveCardIdx, setL3ActiveCardIdx] = useState(null);
+  const [l3TimeLeft, setL3TimeLeft] = useState(600); 
+  const [l3SortingOrder, setL3SortingOrder] = useState([]); 
+  const [draggingPieceId, setDraggingPieceId] = useState(null); 
+  
+  const [l4Mode, setL4Mode] = useState('assign'); 
+  const [l4Elements, setL4Elements] = useState([]); 
+  const [l4Password, setL4Password] = useState('');
+  const [l4SolveInput, setL4SolveInput] = useState('');
+  const [lToolAssignments, setLToolAssignments] = useState({ maze: null, crate: null, bush: null, real_chest: null, trap_chest: null, mine: null, star: null, crystal: null });
+  const [l4PlayerPos, setL4PlayerPos] = useState({ x: 2.5, y: 3.3 });
+  const [l4RadarActive, setL4RadarActive] = useState(false);
+  const [l4IsShaking, setL4IsShaking] = useState(false);
+  const [l4ToolType, setL4ToolType] = useState('maze');
+  const [l4ShowUnlockModal, setL4ShowUnlockModal] = useState(false);
+
+  const pointerDownTimeRef = useRef(0);
+  const puzzleBoardRef = useRef(null);
+  const l3Sentence = useMemo(() => "大家一起玩最開心了".split(""), []);
+
+  const CELL_W = 100 / GRID_COLS; 
+  const CELL_H = 100 / GRID_ROWS;
+  const L2_INNER_RADIUS = 22; 
+  const L2_MAX_ELASTIC_DIST = 58; 
+  const L4_LIMITS = { maze: 60, crate: 15, bush: 15, real_chest: 1, trap_chest: 4, mine: 8, star: 10, crystal: 8 };
+
+  // --- 2. 工具函數 ---
+  const addLog = useCallback((msg) => { 
+    setGameLog(p => [String(msg), ...p].slice(0, 5)); 
+  }, []);
+
+  const showFeedback = useCallback((msg) => { 
+    if(typeof msg === 'string' && msg.length > 0) {
+      setFeedback(msg); 
+      setTimeout(() => setFeedback(""), 2500); 
+    } 
+  }, []);
+
+  const checkPathExists = useCallback((currentElements, startGx, startGy, targetGx, targetGy) => {
+    const queue = [{x: startGx, y: startGy}];
+    const visited = new Set([`${startGx},${startGy}`]);
+    const blockedGrid = Array.from({ length: GRID_ROWS }, () => Array(GRID_COLS).fill(false));
+    currentElements.forEach(el => {
+      if (['maze', 'crate', 'bush', 'mine', 'trap_chest'].includes(el.type)) blockedGrid[el.gy][el.gx] = true;
+    });
+    const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+    while (queue.length > 0) {
+      const {x, y} = queue.shift();
+      if (x === targetGx && y === targetGy) return true;
+      for (const [dx, dy] of dirs) {
+        const nx = x + dx, ny = y + dy;
+        if (nx >= 0 && nx < GRID_COLS && ny >= 0 && ny < GRID_ROWS && !blockedGrid[ny][nx] && !visited.has(`${nx},${ny}`)) {
+          visited.add(`${nx},${ny}`); queue.push({x: nx, y: ny});
+        }
+      }
+    }
+    return false;
+  }, []);
+
+  // --- 3. 遊戲邏輯 ---
+  useEffect(() => {
+    const mc = numPlayers - 1;
+    if (mc <= 0) return;
+    setMemberConfigs(prev => {
+      const next = [...prev];
+      for (let i = 0; i < mc; i++) {
+        if (!next[i]) {
+          next[i] = {
+            shape: AVATAR_SHAPES[(i + 1) % AVATAR_SHAPES.length].id,
+            color: AVATAR_COLORS[(i + 1) % AVATAR_COLORS.length]
+          };
+        }
+      }
+      return next.slice(0, mc);
+    });
+  }, [numPlayers]);
+
+  const startGame = useCallback((lv = 1) => {
+    setLevel(lv); setAlienAura((lv - 1) * 25); 
+    if (lv === 1) {
+        const target = [1, 2, 3, 4, 5, 6, 7, 8, 0].sort(() => Math.random() - 0.5);
+        setL1Target(target);
+        let current = [...target];
+        for (let i = 0; i < 40; i++) {
+          const emptyIdx = current.indexOf(0);
+          const n = []; if (emptyIdx % 3 > 0) n.push(emptyIdx - 1); if (emptyIdx % 3 < 2) n.push(emptyIdx + 1); if (emptyIdx >= 3) n.push(emptyIdx - 3); if (emptyIdx < 6) n.push(emptyIdx + 3);
+          const rand = n[Math.floor(Math.random() * n.length)]; [current[emptyIdx], current[rand]] = [current[rand], current[emptyIdx]];
+        }
+        setL1Grid(current);
+    }
+    if (lv === 2) {
+        const pts = []; const innerExclusion = 32; const outerLimit = 46; const minDistance = 8.5;     
+        for (let i = 1; i <= 50; i++) {
+          let found = false; let attempts = 0;
+          while (!found && attempts < 2000) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = innerExclusion + Math.random() * (outerLimit - innerExclusion);
+            const x = 50 + dist * Math.cos(angle); const y = 50 + dist * Math.sin(angle);
+            const tooClose = pts.some(p => Math.sqrt(Math.pow(p.x - x, 2) + Math.pow(p.y - y, 2)) < minDistance);
+            if (!tooClose) { pts.push({ id: i, x, y }); found = true; }
+            attempts++;
+          }
+          if (!found) pts.push({ id: i, x: 5 + Math.random() * 90, y: 5 + Math.random() * 90 });
+        }
+        setL2Grid(pts); setL2Sequence(Array.from({ length: 50 }, (_, i) => i + 1));
+        const mCount = numPlayers - 1;
+        setL2MemberCoords(Array.from({ length: mCount }).map((_, i) => {
+          const a = (i * 360 / mCount) * (Math.PI / 180);
+          return { x: 50 + L2_INNER_RADIUS * Math.cos(a), y: 50 + L2_INNER_RADIUS * Math.sin(a), isAtCenter: true };
+        }));
+        setL2CurrentStep(0); setL2CurrentNum(1); setL2TimeLeft(300); setL2Lives(3);
+    }
+    if (lv === 3) {
+        setL3State('jinnang'); setL3TimeLeft(600); setL3SortingOrder([]);
+        const cards = l3Sentence.map((char, i) => {
+          const pieces = Array.from({ length: 9 }, (_, idx) => ({ id: idx, x: 15 + Math.random() * 70, y: 78 + Math.random() * 12, rotation: [0, 90, 180, 270][Math.floor(Math.random() * 4)], isCorrect: false }));
+          return { char, color: CARD_COLORS[i % CARD_COLORS.length], pieces, isSolved: false, assignedTo: null };
+        });
+        setL3Cards(cards);
+    }
+    if (lv === 4) {
+      setL4Mode('assign'); setL4Elements([]); setL4RadarActive(false); setL4PlayerPos({ x: 2.5, y: 3.3 });
+      setLToolAssignments({ maze: null, crate: null, bush: null, real_chest: null, trap_chest: null, mine: null, star: null, crystal: null });
+      setL4ShowUnlockModal(false);
+    }
+    setGameState('playing');
+    addLog(`✨ 探險開始：第 ${lv} 區域地圖。`);
+  }, [numPlayers, l3Sentence, L2_INNER_RADIUS, addLog]);
+
+  const resetToL1 = useCallback((reason) => {
+    addLog(`💤 暫時休息：${reason}！重新出發吧！`);
+    setGameState('failed');
+    setTimeout(() => { startGame(1); }, 3000);
+  }, [addLog, startGame]);
+
+  const nextLevel = useCallback(() => {
+    setAlienAura(p => Math.min(p + 25, 100));
+    if (level < 4) { 
+        const nL = level + 1;
+        setLevel(nL); startGame(nL); 
+    } else setGameState('finished');
+  }, [level, startGame]);
+
+  const shuffleAllAvatars = () => {
+    const allShapes = [...AVATAR_SHAPES].sort(() => Math.random() - 0.5);
+    const allColors = [...AVATAR_COLORS].sort(() => Math.random() - 0.5);
+    setLeaderShape(allShapes[0].id);
+    setLeaderColor(allColors[0]);
+    setMemberConfigs(prev => prev.map((cfg, i) => ({
+      shape: allShapes[(i + 1) % allShapes.length].id,
+      color: allColors[(i + 1) % allColors.length]
+    })));
+    showFeedback("魔法變身成功！");
+  };
+
+  const moveL4Player = useCallback((dx, dy) => {
+    if (l4Mode !== 'challenge' || l4ShowUnlockModal) return;
+    setL4PlayerPos(p => {
+      const nx = Math.max(CELL_W / 2, Math.min(100 - CELL_W / 2, p.x + dx));
+      const ny = Math.max(CELL_H / 2, Math.min(100 - CELL_H / 2, p.y + dy));
+      const gx = Math.floor(nx / CELL_W), gy = Math.floor(ny / CELL_H);
+      const el = l4Elements.find(e => e.gx === gx && e.gy === gy);
+      if (el && ['maze', 'crate', 'bush'].includes(el.type)) return p;
+      if (el && el.type === 'mine') { resetToL1("踩到小蘑菇了"); return p; }
+      if (el && el.type === 'trap_chest') { resetToL1("陷進假樹洞了！"); return p; }
+      if (el && el.type === 'real_chest') { setL4ShowUnlockModal(true); return p; }
+      return { x: nx, y: ny };
+    });
+  }, [l4Mode, l4Elements, l4ShowUnlockModal, resetToL1, CELL_W, CELL_H]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (level === 4 && l4Mode === 'challenge' && !l4ShowUnlockModal) {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+          e.preventDefault(); 
+          switch (e.key) {
+            case 'ArrowUp': moveL4Player(0, -CELL_H); break;
+            case 'ArrowDown': moveL4Player(0, CELL_H); break;
+            case 'ArrowLeft': moveL4Player(-CELL_W, 0); break;
+            case 'ArrowRight': moveL4Player(CELL_W, 0); break;
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [level, l4Mode, l4ShowUnlockModal, moveL4Player, CELL_H, CELL_W]);
+
+  // --- 4. 關卡渲染分組 ---
+  const handlePiecePointerDown = (e, pieceId) => { if (role === 'leader') return; e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); setDraggingPieceId(pieceId); pointerDownTimeRef.current = Date.now(); };
+  const handlePuzzlePointerMove = (e) => { if (draggingPieceId === null || role === 'leader' || !puzzleBoardRef.current) return; const rect = puzzleBoardRef.current.getBoundingClientRect(); const nx = ((e.clientX - rect.left) / rect.width) * 100; const ny = ((e.clientY - rect.top) / rect.height) * 100; setL3Cards(prev => { const newCards = [...prev]; const card = newCards[l3ActiveCardIdx]; if (!card) return prev; const piece = card.pieces.find(p => p.id === draggingPieceId); if (piece && !piece.isCorrect) { piece.x = Math.max(2, Math.min(98, nx)); piece.y = Math.max(2, Math.min(98, ny)); } return newCards; }); };
+  const handlePuzzlePointerUp = (e) => { if (draggingPieceId === null || role === 'leader') return; const clickDuration = Date.now() - pointerDownTimeRef.current; setL3Cards(prev => { const newCards = [...prev]; const card = newCards[l3ActiveCardIdx]; if (!card) return prev; const piece = card.pieces.find(p => p.id === draggingPieceId); if (piece && !piece.isCorrect) { if (clickDuration < 200) { piece.rotation = (piece.rotation + 90) % 360; return newCards; } const col = piece.id % 3; const row = Math.floor(piece.id / 3); const targetX = 35 + col * 15; const targetY = 15 + row * 19; const dist = Math.sqrt(Math.pow(piece.x - targetX, 2) + Math.pow(piece.y - targetY, 2)); if (dist < 12 && piece.rotation === 0) { piece.x = targetX; piece.y = targetY; piece.isCorrect = true; if (card.pieces.every(p => p.isCorrect)) { card.isSolved = true; setTimeout(() => setL3ActiveCardIdx(null), 800); if (newCards.every(c => c.isSolved)) setL3State('sorting'); } } else if (dist < 12 && piece.rotation !== 0) { showFeedback("方向不對唷！點點看。"); } } return newCards; }); setDraggingPieceId(null); };
+  const autoAssignL3 = () => { if (role !== 'leader') return; const mc = numPlayers - 1; if (mc <= 0) return; const per = Math.ceil(l3Sentence.length / mc); const newCards = [...l3Cards]; newCards.forEach((c, i) => c.assignedTo = Math.floor(i / per)); setL3Cards(newCards); addLog(`📢 ${leaderName} 分好拼圖任務了！`); };
+
+  // --- 5. 渲染邏輯 ---
+  const renderLobby = () => (
+    <div className="min-h-screen bg-sky-100 flex items-center justify-center p-4 font-sans text-center relative overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-md rounded-[4rem] p-12 max-w-lg w-full shadow-2xl animate-in zoom-in ring-8 ring-white/50">
+        <div className="flex justify-center mb-8 animate-bounce"><CharacterIcon color={leaderColor} shape={leaderShape} size="w-28 h-28" /></div>
+        <h1 className="text-4xl font-black text-pink-500 mb-4 tracking-tighter font-sans">精靈森林大冒險</h1>
+        <p className="text-sky-400 mb-10 font-bold italic text-lg font-sans">「跟好朋友們一起收集友情能量吧！」</p>
+        <button onClick={() => setGameState('setup')} className="w-full py-6 bg-pink-500 text-white rounded-[2.5rem] font-black text-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all"><Play fill="white" size={32}/> 開始冒險</button>
+      </div>
+    </div>
+  );
+
+  const renderSetup = () => {
+    const currentEditingCfg = editingIndex === -1 
+      ? { name: leaderName, color: leaderColor, shape: leaderShape }
+      : { name: `小朋友 ${String.fromCharCode(65+editingIndex)}`, ...memberConfigs[editingIndex] };
+
+    const updateCurrentCfg = (key, val) => {
+      if (editingIndex === -1) {
+        if (key === 'shape') setLeaderShape(val);
+        if (key === 'color') setLeaderColor(val);
+      } else {
+        setMemberConfigs(prev => {
+          const next = [...prev];
+          next[editingIndex] = { ...next[editingIndex], [key]: val };
+          return next;
+        });
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-lime-100 flex items-center justify-center p-4 font-sans text-center overflow-y-auto">
+        <div className="bg-white rounded-[4rem] p-8 md:p-10 max-w-[95vw] w-full shadow-2xl border-b-[12px] border-lime-200 animate-in fade-in">
+          <h2 className="text-3xl font-black text-lime-600 mb-8 flex items-center justify-center gap-4 font-sans">
+            <button onClick={() => setGameState('lobby')} className="p-3 bg-lime-50 rounded-full hover:bg-lime-100 transition-colors text-lime-600 shadow-sm"><RotateCcw size={24}/></button> 冒險準備區
+          </h2>
+          
+          <div className="flex flex-col lg:flex-row gap-4 items-stretch justify-center w-full">
+            {/* 1. 選人數 */}
+            <section className="flex-1 bg-pink-50/50 p-6 rounded-[3rem] border-4 border-white shadow-sm flex flex-col items-center">
+              <div className="flex items-center gap-2 mb-6 text-pink-500 font-black text-xl font-sans font-sans font-sans"><Users size={24} /> 1. 選人數</div>
+              <div className="grid grid-cols-4 gap-2 w-full font-sans font-sans">
+                {[2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+                  <button key={n} onClick={() => setNumPlayers(n)} className={`py-4 rounded-2xl font-black text-lg border-2 transition-all ${numPlayers === n ? 'bg-pink-500 text-white border-pink-200 shadow-md scale-105' : 'bg-white text-pink-200 border-transparent hover:border-pink-100'}`}>{n}</button>
+                ))}
+              </div>
+              <button onClick={shuffleAllAvatars} className="w-full mt-auto py-4 bg-white text-pink-400 border-4 border-pink-100 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-pink-50 text-sm font-sans"><Wand2 size={20}/> 隨機變身</button>
+            </section>
+
+            {/* 2. 誰要變身 */}
+            <section className="flex-1 bg-sky-50/50 p-6 rounded-[3rem] border-4 border-white shadow-sm flex flex-col items-center">
+              <div className="flex items-center gap-2 mb-6 text-sky-500 font-black text-xl font-sans"><Smile size={24} /> 2. 誰變身</div>
+              <div className="space-y-2 w-full overflow-y-auto max-h-[300px] pr-2 custom-scroll">
+                <button onClick={() => setEditingIndex(-1)} className={`w-full p-3 rounded-2xl border-4 flex items-center gap-3 transition-all ${editingIndex === -1 ? 'bg-amber-400 text-white border-amber-200 shadow-md' : 'bg-white text-gray-400 border-transparent'}`}>
+                  <CharacterIcon shape={leaderShape} color={editingIndex === -1 ? 'white' : leaderColor} size="w-8 h-8" />
+                  <span className="font-black text-xs truncate font-sans">隊長: {leaderName}</span>
+                </button>
+                {memberConfigs.map((cfg, i) => (
+                  <button key={i} onClick={() => setEditingIndex(i)} className={`w-full p-3 rounded-2xl border-4 flex items-center gap-3 transition-all ${editingIndex === i ? 'bg-sky-500 text-white border-sky-200 shadow-md' : 'bg-white text-gray-400 border-transparent'}`}>
+                    <CharacterIcon shape={cfg.shape} color={editingIndex === i ? 'white' : cfg.color} size="w-8 h-8" />
+                    <span className="font-black text-xs truncate font-sans">小朋友 {String.fromCharCode(65+i)}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* 3. 換造型 - 依照要求優化比例 */}
+            <section className="flex-[1.8] bg-white p-6 rounded-[3rem] border-4 border-lime-50 shadow-md flex flex-col items-center gap-4">
+              <div className="flex items-center gap-2 text-lime-600 font-black text-xl font-sans"><Palette size={24} /> 3. 換造型</div>
+              
+              <div className="flex flex-col items-center bg-lime-50/20 p-6 rounded-3xl border-2 border-lime-100 w-full justify-center shadow-inner relative overflow-hidden">
+                 <div className="absolute inset-0 opacity-10 pointer-events-none grid grid-cols-4"><Sparkles className="text-lime-400 m-4"/></div>
+                 <CharacterIcon color={currentEditingCfg.color} shape={currentEditingCfg.shape} size="w-32 h-32" />
+                 <div className="mt-4 text-xl font-black text-lime-600 font-sans">{currentEditingCfg.name}</div>
+              </div>
+
+              {editingIndex === -1 && (
+                <input type="text" value={leaderName} onChange={(e) => setLeaderName(e.target.value.substring(0, 10))} className="w-full p-3 rounded-xl border-4 border-amber-100 bg-amber-50/20 font-black text-amber-600 outline-none text-center shadow-inner text-lg font-sans font-sans" placeholder="名字" />
+              )}
+              
+              <div className="flex flex-col gap-4 w-full">
+                <div className="grid grid-cols-5 gap-2 w-full justify-items-center">
+                  {AVATAR_SHAPES.map(s => (
+                    <button key={s.id} onClick={() => updateCurrentCfg('shape', s.id)} className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all ${currentEditingCfg.shape === s.id ? 'bg-lime-400 border-white shadow-md scale-110' : 'bg-gray-100 border-transparent hover:bg-lime-50'}`}>
+                      <CharacterIcon color={currentEditingCfg.shape === s.id ? 'white' : '#AAA'} shape={s.id} size="w-6 h-6" />
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-8 gap-2 w-full justify-items-center">
+                  {AVATAR_COLORS.map(c => (
+                    <button key={c} onClick={() => updateCurrentCfg('color', c)} className={`w-7 h-7 rounded-full border-2 ${currentEditingCfg.color === c ? 'border-lime-500 scale-110 shadow-md ring-4 ring-lime-100' : 'border-white hover:scale-105'}`} style={{ backgroundColor: c }} />
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* 4. 選地圖 */}
+            <section className="flex-1 bg-amber-50/30 p-6 rounded-[3rem] border-4 border-white shadow-sm flex flex-col items-center">
+              <div className="flex items-center gap-2 mb-6 text-amber-600 font-black text-xl font-sans font-sans"><Layers size={24} /> 4. 選地圖</div>
+              <div className="space-y-4 w-full mt-auto font-sans font-sans font-sans">
+                {[1, 2, 3, 4].map(id => (
+                  <button key={id} onClick={() => startGame(id)} className="w-full p-4 rounded-2xl bg-white border-2 border-transparent hover:border-amber-200 flex items-center justify-between font-black text-amber-600 shadow-sm active:scale-95 transition-all text-sm font-sans font-sans">
+                    {id===1?'糖果拼圖':id===2?'精靈舞蹈':id===3?'魔法咒語':'夢幻森林'} <ChevronRightIcon size={20} />
+                  </button>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderLevel1() {
+    const mc = numPlayers - 1;
+    const assignedNums = (function() {
+      const arr = [1, 2, 3, 4, 5, 6, 7, 8]; const per = Math.floor(8/mc); const rem = 8%mc;
+      let start = 0; for(let i=0; i<memberSlot; i++) start += (per + (i < rem ? 1 : 0));
+      return arr.slice(start, start + (per + (memberSlot < rem ? 1 : 0)));
+    })();
+    const handleMove = (idx) => {
+      if (role === 'leader') { showFeedback(`${leaderName}負責指揮！`); return; }
+      const val = l1Grid[idx]; if (val !== 0 && !assignedNums.includes(val)) { showFeedback(`你是隊員 ${String.fromCharCode(65+memberSlot)}，負責：${assignedNums.join(', ')}`); return; }
+      const emptyIdx = l1Grid.indexOf(0); const r = Math.floor(idx/3), c = idx%3, er = Math.floor(emptyIdx/3), ec = emptyIdx%3;
+      if (Math.abs(r-er) + Math.abs(c-ec) === 1) {
+        const n = [...l1Grid]; [n[emptyIdx], n[idx]] = [n[idx], n[emptyIdx]]; setL1Grid(n);
+        if (n.every((v, i) => v === l1Target[i])) { setTimeout(nextLevel, 1000); addLog("🎨 糖果地圖拼好了！"); }
+      }
+    };
+    return (
+      <div className="flex flex-col items-center font-sans py-4 font-sans">
+        <h3 className="text-3xl font-black text-pink-500 mb-8 font-sans font-sans">第一關：糖果拼圖</h3>
+        <div className="flex flex-col md:flex-row gap-12 items-center justify-center w-full">
+          <div className="bg-pink-100 p-6 rounded-[4rem] shadow-2xl border-[12px] border-white relative font-sans">
+             <div className="grid grid-cols-3 gap-4">
+                {l1Grid.map((n, i) => (
+                  <button key={i} onClick={() => handleMove(i)} className={`w-24 h-24 md:w-32 md:h-32 rounded-[2.5rem] flex items-center justify-center text-4xl font-black transition-all ${n === 0 ? 'bg-pink-200/50 border-4 border-dashed border-white/50' : role === 'member' && assignedNums.includes(n) ? 'bg-pink-500 text-white ring-8 ring-pink-200 shadow-xl' : role === 'member' ? 'bg-gray-100 text-gray-300 opacity-40 grayscale' : 'bg-white text-pink-500 shadow-md'}`}>{n === 0 ? "" : n}</button>
+                ))}
+             </div>
+          </div>
+          {role === 'leader' && (
+            <div className="bg-amber-50 p-8 rounded-[3.5rem] border-8 border-white shadow-xl ring-4 ring-amber-100 animate-in slide-in-from-right font-sans font-sans">
+              <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-amber-400 text-white text-sm font-black px-6 py-2 rounded-full shadow-lg font-sans font-sans">{leaderName}的提示卡</div>
+              <div className="grid grid-cols-3 gap-3 mt-4 font-sans font-sans">{l1Target.map((n, i) => (<div key={i} className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black ${n === 0 ? 'bg-amber-200/30 border-2 border-dashed border-amber-300' : 'bg-white text-amber-600'}`}>{n === 0 ? "" : n}</div>))}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function renderLevel2() {
+    const targetId = l2Sequence[l2CurrentStep]; const mc = numPlayers - 1;
+    const handleStep = (item) => {
+      if (role === 'leader') { showFeedback(`${leaderName}負責指揮大家！`); return; }
+      if (item.id !== targetId) { if (l2Lives <= 1) resetToL1("失誤太多次了"); else { setL2Lives(l => l - 1); showFeedback(`點錯囉！請找數字：${targetId}`); } return; }
+      const n = [...l2MemberCoords]; n[memberSlot] = { x: item.x, y: item.y, isAtCenter: false };
+      let broken = false; if (mc > 1) { for (let i = 0; i < mc; i++) { const p1 = n[i]; const p2 = n[(i+1)%mc]; const d = Math.sqrt(Math.pow(p1.x-p2.x,2)+Math.pow(p1.y-p2.y,2)); if (d > L2_MAX_ELASTIC_DIST) { broken = true; break; } } }
+      if (broken) { if (l2Lives <= 1) resetToL1("大家拉太遠了！"); else { setL2Lives(l => l - 1); showFeedback("⚠️ 大家拉開了！回到中心區域。"); } return; }
+      setL2MemberCoords(n); if (l2CurrentStep === 49) nextLevel(); else { setL2CurrentStep(s => s + 1); setL2CurrentNum(n => n + 1); addLog(`🐾 隊員 ${String.fromCharCode(65+memberSlot)} 到達了 ${item.id} 號。`); }
+    };
+    return (
+      <div className="flex flex-col items-center animate-in fade-in font-sans py-2 font-sans font-sans font-sans">
+        <div className="w-full flex flex-col md:flex-row justify-between items-center mb-8 bg-lime-50/50 p-6 rounded-[3.5rem] border-4 border-white shadow-sm gap-6 font-sans font-sans font-sans">
+          <div className="flex items-center gap-6 font-sans">
+             <div className="w-20 h-20 rounded-full border-4 border-white bg-lime-400 flex items-center justify-center shadow-lg font-sans font-sans font-sans font-sans"><CharacterIcon color={leaderColor} shape={leaderShape} size="w-12 h-12" /></div>
+             <div className="text-left font-sans font-sans font-sans font-sans"><div className="text-xs font-black text-lime-600 uppercase tracking-widest font-sans font-sans font-sans font-sans">{leaderName}指引中</div><div className="text-xl font-black text-gray-700 font-sans font-sans font-sans font-sans">下一個號碼：<span className="text-pink-500 text-3xl ml-2 font-sans font-sans font-sans font-sans">{l2CurrentNum}</span></div></div>
+          </div>
+          <div className="flex gap-4 font-sans font-sans font-sans font-sans">
+            <div className="bg-sky-400 text-white px-6 py-3 rounded-3xl flex items-center gap-3 font-black shadow-lg font-sans font-sans font-sans font-sans font-sans"><Clock size={24}/> {Math.floor(l2TimeLeft/60)}:{(l2TimeLeft%60).toString().padStart(2,'0')}</div>
+            <div className="bg-rose-400 text-white px-6 py-3 rounded-3xl flex items-center gap-2 font-black shadow-lg font-sans font-sans font-sans font-sans font-sans">{[...Array(l2Lives)].map((_,i)=><Heart key={i} size={20} fill="currentColor"/>)}</div>
+          </div>
+        </div>
+        <div className="relative w-full max-w-2xl aspect-square bg-sky-50 rounded-[4rem] border-[12px] border-white shadow-2xl overflow-hidden mb-8 mx-auto ring-8 ring-sky-100 font-sans">
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-10 font-sans">{mc > 1 && Array.from({ length: mc }).map((_, i) => { const p1 = l2MemberCoords[i]; const p2 = l2MemberCoords[(i+1)%mc]; if (!p1 || !p2) return null; const d = Math.sqrt(Math.pow(p1.x-p2.x,2)+Math.pow(p1.y-p2.y,2)); const c = d > L2_MAX_ELASTIC_DIST*0.8 ? "stroke-rose-400" : d > L2_MAX_ELASTIC_DIST*0.6 ? "stroke-amber-400" : "stroke-sky-400"; return <line key={i} x1={`${p1.x}%`} y1={`${p1.y}%`} x2={`${p2.x}%`} y2={`${p2.y}%`} className={`${c} transition-all duration-300`} strokeWidth="6" strokeDasharray={d > L2_MAX_ELASTIC_DIST * 0.7 ? "8,8" : ""} strokeLinecap="round" />; })}</svg>
+          {l2MemberCoords.map((pos, i) => (
+              <div key={i} className={`absolute w-14 h-14 rounded-full border-4 border-white bg-white flex items-center justify-center -translate-x-1/2 -translate-y-1/2 transition-all duration-500 z-30 shadow-xl ${role === 'member' && i === memberSlot ? 'ring-8 ring-pink-200 scale-125' : 'opacity-90 scale-95'}`} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
+                <CharacterIcon shape={memberConfigs[i]?.shape || 'alien'} color={memberConfigs[i]?.color || '#CCC'} size="w-10 h-10" />
+                <div className="absolute -top-10 bg-pink-500 text-white text-[10px] px-3 py-1 rounded-full font-black border-2 border-white shadow-md font-sans font-sans font-sans">小朋友 {String.fromCharCode(65+i)}</div>
+              </div>
+          ))}
+          {l2Grid.map((item) => { const isT = item.id === targetId; const isP = item.id < l2CurrentNum; const occupied = l2MemberCoords.some(m => Math.abs(m.x - item.x) < 0.1 && Math.abs(m.y - item.y) < 0.1); return (<button key={item.id} onClick={() => handleStep(item)} style={{ left: `${item.x}%`, top: `${item.y}%` }} className={`absolute w-11 h-11 rounded-full flex items-center justify-center text-sm font-black transition-all -translate-x-1/2 -translate-y-1/2 z-0 ${isP ? (occupied ? 'bg-sky-500 text-white border-4 border-white z-40 shadow-inner' : 'bg-lime-400/30 text-lime-600/40 scale-75') : 'bg-white text-sky-400 border-4 border-sky-100 hover:scale-110 shadow-sm shadow-black/10'} ${role === 'leader' && isT ? 'bg-amber-400 text-white ring-8 ring-amber-100 animate-pulse z-40 border-4 border-white shadow-lg' : ''}`}>{item.id}</button>); })}
+        </div>
+      </div>
+    );
+  }
+
+  const renderContent = () => {
+    switch (level) {
+      case 1: return renderLevel1();
+      case 2: return renderLevel2();
+      case 3: return renderLevel3();
+      case 4: return renderLevel4();
+      default: return renderLevel1();
+    }
+  };
+
+  // --- 6. 主渲染分支 ---
+  if (gameState === 'lobby') return renderLobby();
+  if (gameState === 'setup') return renderSetup();
+  if (gameState === 'finished') return (
+    <div className="min-h-screen bg-pink-100 flex items-center justify-center p-4 text-center font-sans relative overflow-hidden font-sans font-sans">
+      <div className="absolute inset-0 opacity-10 pointer-events-none grid grid-cols-6 grid-rows-6 font-sans font-sans font-sans font-sans font-sans"><Star className="text-yellow-400 rotate-12" size={100}/></div>
+      <div className="bg-white rounded-[5rem] p-16 max-w-2xl w-full shadow-2xl animate-in zoom-in border-b-[20px] border-pink-200 ring-8 ring-white/50 font-sans font-sans font-sans font-sans font-sans font-sans">
+        <CharacterIcon color={leaderColor} shape={leaderShape} size="w-40 h-40 mx-auto mb-10 animate-bounce" />
+        <h1 className="text-6xl font-black text-pink-500 mb-6 tracking-tighter font-sans font-sans font-sans font-sans font-sans font-sans">探險完美成功！</h1>
+        <p className="text-sky-400 mb-12 text-2xl font-black italic font-sans font-sans font-sans font-sans font-sans font-sans">「{leaderName}，你帶領大家找回了所有友誼能量！」</p>
+        <button onClick={() => setGameState('lobby')} className="w-full py-7 bg-pink-500 text-white rounded-[3rem] font-black text-3xl hover:bg-pink-600 shadow-[0_12px_0_rgb(190,24,93)] active:scale-95 transition-all font-sans font-sans font-sans font-sans font-sans font-sans">回到森林大門</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans overflow-x-hidden selection:bg-pink-200 font-sans font-sans">
+      <header className="bg-white border-b-8 border-pink-50 p-6 flex justify-between items-center sticky top-0 z-40 shadow-sm shadow-pink-50/50 font-sans font-sans font-sans font-sans font-sans">
+        <div className="flex items-center gap-4 font-sans font-sans font-sans">
+          <CharacterIcon color={leaderColor} shape={leaderShape} size="w-16 h-16" />
+          <div className="hidden sm:block text-left font-sans font-sans font-sans font-sans font-sans font-sans">
+            <div className="text-xs font-black text-pink-300 uppercase tracking-widest font-sans font-sans font-sans font-sans font-sans font-sans">彩虹友誼能量</div>
+            <div className="w-40 h-4 bg-pink-50 rounded-full mt-2 overflow-hidden shadow-inner ring-2 ring-pink-100 font-sans font-sans font-sans font-sans font-sans font-sans">
+              <div className="h-full bg-gradient-to-r from-pink-400 to-yellow-300 transition-all duration-1000 shadow-lg font-sans font-sans font-sans font-sans font-sans font-sans" style={{ width: `${alienAura}%` }}></div>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row items-center gap-4 font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">
+          <div className="flex items-center gap-4 font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">
+            <div className={`px-6 py-3 rounded-3xl text-lg font-black border-4 transition-all flex items-center gap-3 shadow-md font-sans font-sans font-sans font-sans font-sans font-sans font-sans ${role === 'leader' ? 'bg-amber-100 text-amber-600 border-amber-200 shadow-amber-50 font-sans font-sans font-sans font-sans font-sans font-sans' : 'bg-sky-100 text-sky-600 border-sky-200 shadow-sky-50 font-sans font-sans font-sans'}`}>
+              {role === 'leader' ? <UserCheck size={24}/> : <Users size={24}/>}
+              {role === 'leader' ? leaderName : `小朋友 ${String.fromCharCode(memberSlot+65)}`}
+            </div>
+            <button onClick={() => { setRole(prev => prev === 'leader' ? 'member' : 'leader'); showFeedback(`模式已切換`); }} className="p-3 bg-pink-50 text-pink-400 hover:text-pink-600 rounded-3xl transition-all shadow-md border-4 border-white active:rotate-180 active:scale-90 shadow-pink-100 font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans"><RefreshCcw size={28}/></button>
+          </div>
+          {role === 'member' && numPlayers > 2 && (
+            <div className="flex gap-1.5 bg-gray-100 p-2 rounded-2xl border-4 border-white shadow-inner font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">
+               {[...Array(numPlayers - 1)].map((_, i) => (<button key={i} onClick={() => { setMemberSlot(i); showFeedback(`歡迎小朋友 ${String.fromCharCode(65 + i)}`); }} className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm transition-all font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans ${memberSlot === i ? 'bg-white text-pink-500 shadow-md scale-110 ring-4 ring-pink-100 font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans' : 'text-gray-400 hover:bg-gray-50'}`}>{String.fromCharCode(65 + i)}</button>))}
+            </div>
+          )}
+          <button onClick={() => setGameState('setup')} className="p-3 bg-gray-50 text-gray-400 hover:text-rose-500 rounded-3xl border-4 border-white shadow-md active:scale-90 transition-transform font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans"><Settings size={28}/></button>
+        </div>
+      </header>
+      <main className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden text-center bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,1)_0%,rgba(240,240,250,1)_100%)] font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">
+        {gameState === 'failed' && (<div className="absolute inset-0 z-[60] bg-rose-500/90 backdrop-blur-sm flex flex-col items-center justify-center text-white p-10 animate-in fade-in zoom-in shadow-2xl font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans"><ShieldAlert size={120} className="mb-8 animate-bounce text-white drop-shadow-xl font-sans font-sans font-sans font-sans" /><h2 className="text-6xl font-black mb-6 tracking-tighter font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">先休息一下！</h2><p className="text-2xl font-bold opacity-90 font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">沒關係，多練習幾次會更有默契唷！</p></div>)}
+        <div className="w-full max-w-6xl bg-white rounded-[5rem] shadow-2xl p-8 md:p-12 border-b-[20px] border-pink-50 relative transition-all overflow-hidden ring-8 ring-white/50 font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">{renderContent()}</div>
+        {feedback && typeof feedback === 'string' && <div className="mt-10 px-12 py-4 bg-pink-500 text-white text-xl font-black rounded-full shadow-2xl animate-bounce border-4 border-white ring-8 ring-pink-100/50 shadow-pink-200 font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">{feedback}</div>}
+      </main>
+      <footer className="p-4 bg-white border-t-8 border-pink-50 flex gap-3 overflow-x-auto no-scrollbar font-sans shadow-sm font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans"><div className="flex-shrink-0 bg-lime-100 px-5 py-2.5 rounded-2xl text-xs font-black text-lime-600 flex items-center gap-2 uppercase tracking-widest font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans">探險日誌:</div>{gameLog.map((log, i) => (<div key={i} className="flex-shrink-0 bg-sky-50 px-6 py-2.5 rounded-3xl text-sm shadow-sm text-sky-600 border-2 border-white flex items-center gap-2 font-bold animate-in slide-in-from-left font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans font-sans"><ArrowRight size={16} className="text-pink-400" /> {String(log)}</div>))}</footer>
+      <style dangerouslySetInnerHTML={{ __html: `.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}} />
+    </div>
+  );
+};
+
+export default App;
